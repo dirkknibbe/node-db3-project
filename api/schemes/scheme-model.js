@@ -104,10 +104,16 @@ async function findById(scheme_id) {
       }
   */
   const rows = await db("schemes as sc")
-    .select("sc.scheme_name", "st.*")
+    .select(
+      "sc.scheme_id",
+      "scheme_name",
+      "step_id",
+      "step_number",
+      "instructions"
+    )
     .leftJoin("steps as st", "sc.scheme_id", "st.scheme_id")
     .where("sc.scheme_id", scheme_id)
-    .orderBy("st.step_number", "asc");
+    .orderBy("st.step_number");
 
   if (rows.length == 0) {
     return null;
@@ -150,6 +156,17 @@ function findSteps(scheme_id) {
         }
       ]
   */
+
+  return db("steps")
+    .join("schemes", "steps.scheme_id", "schemes.scheme_id")
+    .select(
+      "steps.step_id as step_id",
+      "step_number",
+      "instructions",
+      "scheme_name"
+    )
+    .where("schemes.scheme_id", scheme_id)
+    .orderBy("step_number");
 }
 
 function add(scheme) {
@@ -157,15 +174,24 @@ function add(scheme) {
   /*
     1D- This function creates a new scheme and resolves to _the newly created scheme_.
   */
+  return db("schemes")
+    .insert(scheme)
+    .then(([id]) => {
+      // eslint-disable-line
+      return findById(id);
+    });
 }
 
-function addStep(scheme_id, step) {
+async function addStep(scheme_id, step) {
   // EXERCISE E
   /*
     1E- This function adds a step to the scheme with the given `scheme_id`
     and resolves to _all the steps_ belonging to the given `scheme_id`,
     including the newly created one.
   */
+  await db("steps").insert({ ...step, scheme_id });
+
+  return findSteps(scheme_id);
 }
 
 module.exports = {
